@@ -165,23 +165,33 @@ export default function AdminPanel() {
   );
 
   const renderOverview = () => (
-    // ...
+    <View>
+        <Text>Overview content</Text>
+    </View>
   );
 
   const renderLandlords = () => (
-    // ...
+    <View>
+        <Text>Landlords content</Text>
+    </View>
   );
 
   const renderListings = () => (
-    // ...
+    <View>
+        <Text>Listings content</Text>
+    </View>
   );
 
   const renderPayouts = () => (
-    // ...
+    <View>
+        <Text>Payouts content</Text>
+    </View>
   );
 
   const renderRevenue = () => (
-    // ...
+    <View>
+        <Text>Revenue content</Text>
+    </View>
   );
 
   return (
