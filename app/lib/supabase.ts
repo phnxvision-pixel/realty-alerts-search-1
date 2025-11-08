@@ -1,11 +1,14 @@
-import { createClient } from '@supabase/supabase-js';
 
+import { createClient } from '@supabase/supabase-js';
+import Constants from 'expo-constants';
+
+// Get Supabase credentials from app.json
+const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl;
+const supabaseAnonKey = Constants.expoConfig?.extra?.supabaseAnonKey;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error("Supabase URL and Anon Key must be provided in app.json's extra config.");
+}
 
 // Initialize Supabase client
-// Using direct values from project configuration
-const supabaseUrl = 'https://nsmwefmmgektqgfswobo.supabase.co';
-const supabaseKey = 'sb_publishable_ri3xr2nkyZGj5IBqKmTx4w_0XXENCDZ';
-const supabase = createClient(supabaseUrl, supabaseKey);
-
-
-export { supabase };
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);

@@ -1,10 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, FlatList } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, FlatList, Alert } from 'react-native';
 import { supabase } from '../lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import RevenueChart from '../../components/RevenueChart';
 import PayoutRequestCard from '../../components/PayoutRequestCard';
-
 
 export default function AdminPanel() {
   const [loading, setLoading] = useState(false);
@@ -23,8 +23,6 @@ export default function AdminPanel() {
     pendingListings: 0,
     pendingPayouts: 0
   });
-
-
 
   useEffect(() => {
     fetchData();
@@ -77,8 +75,6 @@ export default function AdminPanel() {
     setLoading(false);
   };
 
-
-
   const approveLandlord = async (id: string) => {
     await supabase.from('landlords').update({ verified: true, status: 'approved' }).eq('id', id);
     fetchData();
@@ -99,94 +95,68 @@ export default function AdminPanel() {
     fetchData();
   };
 
-
   const approvePayout = async (id: string) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    const { data: admin } = await supabase.from('admin_users').select('id').eq('user_id', user?.id).single();
-    
-    await supabase.functions.invoke('process-payout', {
-      body: { requestId: id, action: 'approve', adminId: admin?.id }
-    });
-    fetchData();
+    // ...
   };
 
   const rejectPayout = async (id: string) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    const { data: admin } = await supabase.from('admin_users').select('id').eq('user_id', user?.id).single();
-    
-    await supabase.functions.invoke('process-payout', {
-      body: { requestId: id, action: 'reject', adminId: admin?.id, rejectionReason: 'Admin rejected' }
-    });
-    fetchData();
+    // ...
   };
 
+  const deleteUser = async (userId: string) => {
+    Alert.alert(
+      "Delete User",
+      "Are you sure you want to delete this user? This action cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Delete", 
+          style: "destructive", 
+          onPress: async () => {
+            const { error } = await supabase.functions.invoke('delete-user', { body: { user_id: userId } });
+            if (error) Alert.alert("Error", "Failed to delete user.");
+            else fetchData();
+          }
+        }
+      ]
+    );
+  };
 
-  const renderOverview = () => (
-    <View style={styles.statsContainer}>
-      <View style={styles.statCard}>
-        <Ionicons name="people" size={32} color="#007AFF" />
-        <Text style={styles.statNumber}>{stats.totalUsers}</Text>
-        <Text style={styles.statLabel}>Total Users</Text>
-      </View>
-      <View style={styles.statCard}>
-        <Ionicons name="business" size={32} color="#34C759" />
-        <Text style={styles.statNumber}>{stats.totalLandlords}</Text>
-        <Text style={styles.statLabel}>Landlords</Text>
-      </View>
-      <View style={styles.statCard}>
-        <Ionicons name="home" size={32} color="#FF9500" />
-        <Text style={styles.statNumber}>{stats.totalListings}</Text>
-        <Text style={styles.statLabel}>Listings</Text>
-      </View>
-      <View style={styles.statCard}>
-        <Ionicons name="time" size={32} color="#FF3B30" />
-        <Text style={styles.statNumber}>{stats.pendingLandlords}</Text>
-        <Text style={styles.statLabel}>Pending Landlords</Text>
-      </View>
-    </View>
-  );
+  const toggleUserBan = async (userId: string, isBanned: boolean) => {
+    const { error } = await supabase.from('users').update({ is_banned: !isBanned }).eq('id', userId);
+    if (error) Alert.alert("Error", "Failed to update user status.");
+    else fetchData();
+  };
 
-  const renderLandlords = () => (
+  const toggleAdminRole = async (userId: string, isAdmin: boolean) => {
+    const { error } = await supabase.functions.invoke('toggle-admin-role', { body: { user_id: userId, is_admin: !isAdmin } });
+    if (error) Alert.alert("Error", "Failed to update user role.");
+    else fetchData();
+  };
+
+  const renderUsers = () => (
     <FlatList
-      data={landlords}
+      data={users}
       keyExtractor={item => item.id}
       renderItem={({ item }) => (
         <View style={styles.itemCard}>
-          <Text style={styles.itemTitle}>{item.company_name || item.full_name}</Text>
+          <Text style={styles.itemTitle}>{item.full_name}</Text>
           <Text style={styles.itemSubtitle}>{item.email}</Text>
-          <Text style={styles.itemStatus}>Status: {item.status || 'pending'}</Text>
-          {!item.verified && (
-            <View style={styles.actions}>
-              <TouchableOpacity style={styles.approveBtn} onPress={() => approveLandlord(item.id)}>
-                <Text style={styles.btnText}>Approve</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.rejectBtn} onPress={() => rejectLandlord(item.id)}>
-                <Text style={styles.btnText}>Reject</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
-      )}
-    />
-  );
-
-  const renderListings = () => (
-    <FlatList
-      data={listings}
-      keyExtractor={item => item.id}
-      renderItem={({ item }) => (
-        <View style={styles.itemCard}>
-          <Text style={styles.itemTitle}>{item.title}</Text>
-          <Text style={styles.itemSubtitle}>{item.address}, {item.city}</Text>
-          <Text style={styles.itemPrice}>€{item.price}/month</Text>
           <View style={styles.actions}>
-            {!item.verified && (
-              <TouchableOpacity style={styles.approveBtn} onPress={() => approveListing(item.id)}>
-                <Text style={styles.btnText}>Approve</Text>
-              </TouchableOpacity>
-            )}
-            <TouchableOpacity style={styles.deleteBtn} onPress={() => deleteListing(item.id)}>
+            <TouchableOpacity style={styles.deleteBtn} onPress={() => deleteUser(item.id)}>
               <Text style={styles.btnText}>Delete</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={item.is_banned ? styles.approveBtn : styles.rejectBtn} 
+              onPress={() => toggleUserBan(item.id, item.is_banned)}
+            >
+              <Text style={styles.btnText}>{item.is_banned ? 'Unban' : 'Ban'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.adminBtn} 
+              onPress={() => toggleAdminRole(item.id, item.is_admin)}
+            >
+              <Text style={styles.btnText}>{item.is_admin ? 'Remove Admin' : 'Make Admin'}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -194,68 +164,32 @@ export default function AdminPanel() {
     />
   );
 
-  const renderPayouts = () => (
-    <FlatList
-      data={payoutRequests}
-      keyExtractor={item => item.id}
-      renderItem={({ item }) => (
-        <PayoutRequestCard
-          request={item}
-          isAdmin={true}
-          onApprove={approvePayout}
-          onReject={rejectPayout}
-        />
-      )}
-    />
+  const renderOverview = () => (
+    // ...
   );
 
-  const exportCSV = async () => {
-    const { data } = await supabase.functions.invoke('export-revenue-csv', { body: { timeframe } });
-  };
+  const renderLandlords = () => (
+    // ...
+  );
+
+  const renderListings = () => (
+    // ...
+  );
+
+  const renderPayouts = () => (
+    // ...
+  );
 
   const renderRevenue = () => (
-    <View>
-      <View style={styles.timeframeToggle}>
-        <TouchableOpacity
-          style={[styles.toggleBtn, timeframe === 'month' && styles.toggleActive]}
-          onPress={() => { setTimeframe('month'); fetchData(); }}>
-          <Text style={[styles.toggleText, timeframe === 'month' && styles.toggleTextActive]}>Month</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.toggleBtn, timeframe === 'year' && styles.toggleActive]}
-          onPress={() => { setTimeframe('year'); fetchData(); }}>
-          <Text style={[styles.toggleText, timeframe === 'year' && styles.toggleTextActive]}>Year</Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.statsGrid}>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>${revenueData?.summary?.totalRevenue?.toFixed(2) || '0'}</Text>
-          <Text style={styles.statLabel}>Total Revenue</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>${revenueData?.summary?.platformCommission?.toFixed(2) || '0'}</Text>
-          <Text style={styles.statLabel}>Commission</Text>
-        </View>
-      </View>
-
-      {revenueData?.monthlyData && <RevenueChart data={revenueData.monthlyData} type="revenue" />}
-      {revenueData?.monthlyData && <RevenueChart data={revenueData.monthlyData} type="commission" />}
-
-      <TouchableOpacity style={styles.exportBtn} onPress={exportCSV}>
-        <Ionicons name="download-outline" size={20} color="#fff" />
-        <Text style={styles.exportText}>Export CSV</Text>
-      </TouchableOpacity>
-    </View>
+    // ...
   );
-
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Admin Panel</Text>
       
       <View style={styles.tabs}>
-        {['overview', 'landlords', 'listings', 'payouts', 'revenue'].map(tab => (
+        {['overview', 'users', 'landlords', 'listings', 'payouts', 'revenue'].map(tab => (
           <TouchableOpacity
             key={tab}
             style={[styles.tab, activeTab === tab && styles.activeTab]}
@@ -273,6 +207,7 @@ export default function AdminPanel() {
       ) : (
         <ScrollView style={styles.content}>
           {activeTab === 'overview' && renderOverview()}
+          {activeTab === 'users' && renderUsers()}
           {activeTab === 'landlords' && renderLandlords()}
           {activeTab === 'listings' && renderListings()}
           {activeTab === 'payouts' && renderPayouts()}
@@ -283,12 +218,14 @@ export default function AdminPanel() {
   );
 }
 
-
 const styles = StyleSheet.create({
+  // ... (add adminBtn style)
+  adminBtn: { flex: 1, backgroundColor: '#5856D6', padding: 10, borderRadius: 8, alignItems: 'center' },
+  // ... (rest of the styles)
   container: { flex: 1, backgroundColor: '#f5f5f5' },
   title: { fontSize: 28, fontWeight: 'bold', padding: 20, paddingBottom: 10 },
   tabs: { flexDirection: 'row', paddingHorizontal: 20, gap: 8, marginBottom: 16 },
-  tab: { flex: 1, padding: 12, backgroundColor: '#fff', borderRadius: 8, alignItems: 'center' },
+  tab: { padding: 12, backgroundColor: '#fff', borderRadius: 8, alignItems: 'center' },
   activeTab: { backgroundColor: '#007AFF' },
   tabText: { fontSize: 14, fontWeight: '600', color: '#666' },
   activeTabText: { color: '#fff' },
@@ -312,7 +249,7 @@ const styles = StyleSheet.create({
   itemSubtitle: { fontSize: 14, color: '#666', marginBottom: 4 },
   itemStatus: { fontSize: 12, color: '#999', marginBottom: 8 },
   itemPrice: { fontSize: 14, fontWeight: '600', color: '#007AFF', marginBottom: 8 },
-  actions: { flexDirection: 'row', gap: 8 },
+  actions: { flexDirection: 'row', gap: 8, marginTop: 12 },
   approveBtn: { flex: 1, backgroundColor: '#34C759', padding: 10, borderRadius: 8, alignItems: 'center' },
   rejectBtn: { flex: 1, backgroundColor: '#FF9500', padding: 10, borderRadius: 8, alignItems: 'center' },
   deleteBtn: { flex: 1, backgroundColor: '#FF3B30', padding: 10, borderRadius: 8, alignItems: 'center' },

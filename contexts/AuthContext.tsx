@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/app/lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
@@ -11,10 +12,6 @@ import { makeRedirectUri } from 'expo-auth-session';
 import { router } from 'expo-router';
 
 WebBrowser.maybeCompleteAuthSession();
-
-
-
-
 
 interface AuthContextType {
   session: Session | null;
@@ -33,8 +30,6 @@ interface AuthContextType {
   signInWithApple: () => Promise<void>;
 }
 
-
-
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -44,15 +39,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const [loading, setLoading] = useState(true);
 
-
+  // Corrected Redirect URI using Expo's proxy
   const redirectUri = makeRedirectUri({
-    scheme: 'realty-alerts-search-1',
-    path: 'auth/callback'
+    useProxy: true,
   });
 
-  // Log redirect URI for debugging
-  console.log('🔍 OAuth Redirect URI:', redirectUri);
-  console.log('📱 Expected format: realty-alerts-search-1://auth/callback');
+  console.log('✅ Corrected OAuth Redirect URI:', redirectUri);
 
   const [request, response, promptAsync] = Google.useAuthRequest({
     iosClientId: '929069562295-181nuemr8ocevknad565l5p0895o8old.apps.googleusercontent.com',
@@ -61,18 +53,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     redirectUri: redirectUri,
   });
 
-
-
-
   useEffect(() => {
     if (response?.type === 'success') {
       const { authentication } = response;
-      handleGoogleSignIn(authentication?.accessToken);
+      if (authentication?.accessToken) {
+        handleGoogleSignIn(authentication.accessToken);
+      } else {
+        console.error('❌ Google OAuth response without accessToken.');
+        Alert.alert('Google Sign-In Error', 'An error occurred during sign-in. Please try again.');
+      }
     } else if (response?.type === 'error') {
       console.error('❌ OAuth Error:', response.error);
       Alert.alert(
-        'Google Sign-In Fehler',
-        'Bitte überprüfen Sie die OAuth-Konfiguration. Details in der Konsole.',
+        'Google Sign-In Error',
+        'Please check the OAuth configuration. Details in the console.',
         [{ text: 'OK' }]
       );
     }
@@ -119,8 +113,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-
-
   const checkPremiumStatus = async () => {
     const { data } = await supabase
       .from('users')
@@ -153,8 +145,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-
-
   const signOut = async () => {
     await supabase.auth.signOut();
     await authStorage.clearAll();
@@ -169,8 +159,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await supabase.from('users').update(data).eq('id', user?.id);
   };
 
-  const handleGoogleSignIn = async (accessToken?: string) => {
-    if (!accessToken) return;
+  const handleGoogleSignIn = async (accessToken: string) => {
     const { data, error } = await supabase.auth.signInWithIdToken({
       provider: 'google',
       token: accessToken,
@@ -181,14 +170,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await authStorage.saveToken(accessToken);
       await authStorage.saveUser(data.user);
       
-      // Redirect to review screen if profile data was imported
       if (importedData?.needs_review) {
         router.replace('/auth/review-oauth-profile');
       }
     }
   };
-
-
 
   const signInWithGoogle = async () => {
     await promptAsync();
@@ -215,7 +201,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await authStorage.saveToken(credential.identityToken!);
         await authStorage.saveUser(data.user);
         
-        // Redirect to review screen if profile data was imported
         if (importedData?.needs_review) {
           router.replace('/auth/review-oauth-profile');
         }
@@ -228,8 +213,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-
-
   return (
     <AuthContext.Provider value={{ 
       session, user, isPremium, loading, needsOnboarding,
@@ -240,7 +223,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       {children}
     </AuthContext.Provider>
   );
-
 }
 
 export const useAuth = () => {

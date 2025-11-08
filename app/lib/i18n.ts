@@ -6,6 +6,8 @@ import { initReactI18next } from 'react-i18next';
 import tabsEN from '@/constants/translations/en/tabs.json';
 import tabsDE from '@/constants/translations/de/tabs.json';
 import tabsFR from '@/constants/translations/fr/tabs.json';
+import tabsTR from '@/constants/translations/tr/tabs.json';
+
 
 export const resources = {
   en: {
@@ -17,6 +19,9 @@ export const resources = {
   fr: {
     tabs: tabsFR,
   },
+  tr: {
+    tabs: tabsTR,
+  }
 } as const;
 
 i18n
