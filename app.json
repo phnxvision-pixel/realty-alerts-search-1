@@ -41,8 +41,8 @@
       "typedRoutes": true
     },
     "extra": {
-      "supabaseUrl": "https://nsmwefmmgektqgfswobo.supabase.co",
-      "supabaseAnonKey": "sb_publishable_ri3xr2nkyZGj5IBqKmTx4w_0XXENCDZ",
+      "supabaseUrl": "https://geydwdnjzbkuqozymbrm.supabase.co",
+      "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdleWR3ZG5qemJrdXFvenltYnJtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI1NjE4MzYsImV4cCI6MjA3ODEzNzgzNn0.BOCvvxG_U5Gfwxc_b8pQqCuLyu3bf7oXXAXnrUuEVC8",
       "privacyPolicyUrl": "https://phnxvision-pixel.github.io/PRIVACY_POLICY.md/privacy-policy.html"
     }
   }
